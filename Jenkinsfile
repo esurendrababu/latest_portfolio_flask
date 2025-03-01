@@ -33,13 +33,12 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Run Flask App') {
             steps {
                 sh '''
-                pkill -f gunicorn || true  # Stop any running Gunicorn process
-                cd project
-                source ../venv/bin/activate
-                nohup gunicorn --bind 0.0.0.0:80 app:app > ../flask.log 2>&1 &
+                pkill -f app.py || true  # Stop any existing Flask app instance
+                source venv/bin/activate
+                nohup python3 app.py > flask.log 2>&1 &
                 '''
             }
         }
