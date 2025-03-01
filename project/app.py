@@ -24,6 +24,7 @@ def download_resume():
     filename = 'Esurendrababu.pdf'  # Replace with your actual resume file name
     return send_from_directory(directory, filename, as_attachment=True)
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=80)
+
 
 
