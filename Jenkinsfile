@@ -2,58 +2,57 @@ pipeline {
     agent any
 
     environment {
-        WORKSPACE_DIR = "/var/lib/jenkins/workspace/Flask-CI-CD"
-        VENV_DIR = "venv"
-        FLASK_LOG = "flask.log"
+        APP_DIR = "/home/ec2-user/flaskapp"
+        VENV_DIR = "/home/ec2-user/venv"
+        GIT_REPO = "https://github.com/esurendrababu/latest_portfolio_flask.git"
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Clone Repository') {
             steps {
-                git branch: 'master', url: 'https://github.com/esurendrababu/latest_portfolio_flask.git'
+                sh '''
+                rm -rf $APP_DIR
+                git clone $GIT_REPO $APP_DIR
+                '''
             }
         }
 
         stage('Setup Virtual Environment') {
             steps {
-                script {
-                    sh """
-                    cd ${env.WORKSPACE_DIR}  # Use ${env.WORKSPACE_DIR} instead of ${WORKSPACE_DIR}
-                    if [ ! -d "${env.VENV_DIR}" ]; then
-                        python3 -m venv ${env.VENV_DIR}
-                    fi
-                    """
-                }
+                sh '''
+                python3 -m venv $VENV_DIR
+                source $VENV_DIR/bin/activate
+                pip install --upgrade pip
+                pip install -r $APP_DIR/requirements.txt
+                '''
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Run Flask Application') {
             steps {
-                sh """
-                cd ${env.WORKSPACE_DIR}  # Use ${env.WORKSPACE_DIR} instead of ${WORKSPACE_DIR}
-                source ${env.VENV_DIR}/bin/activate
-                pip install -r requirements.txt
-                """
+                sh '''
+                nohup python3 $APP_DIR/app.py > flask.log 2>&1 &
+                '''
             }
         }
 
-        stage('Deploy Application') {
+        stage('Configure Nginx') {
             steps {
-                sh """
-                cd ${env.WORKSPACE_DIR}
-                source ${env.VENV_DIR}/bin/activate
-
-                # Kill existing Gunicorn process if running
-                pkill -f 'gunicorn' || true
-
-                # Allow Gunicorn to use port 80 (one-time setup)
-                sudo setcap 'cap_net_bind_service=+ep' $(which gunicorn)
-
-                # Start Gunicorn on port 80
-                nohup gunicorn --bind 0.0.0.0:80 app:app > ${env.FLASK_LOG} 2>&1 &
-                """
+                sh '''
+                sudo rm -f /etc/nginx/conf.d/default.conf
+                echo "server {
+                    listen 80;
+                    server_name _;
+                    location / {
+                        proxy_pass http://127.0.0.1:5000;
+                        proxy_set_header Host $host;
+                        proxy_set_header X-Real-IP $remote_addr;
+                        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    }
+                }" | sudo tee /etc/nginx/conf.d/flaskapp.conf
+                sudo systemctl restart nginx
+                '''
             }
         }
     }
-
-
+}
