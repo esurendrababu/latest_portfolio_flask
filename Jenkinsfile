@@ -36,10 +36,20 @@ pipeline {
         stage('Run Flask App') {
             steps {
                 sh '''
-                cd project
-                pkill -f app.py || true  # Stop any existing Flask app instance
+                # Stop the existing Flask app (if running)
+                PID=$(ps aux | grep '[p]ython3 app.py' | awk '{print $2}')
+                if [ -n "$PID" ]; then
+                    echo "Stopping existing Flask app..."
+                    kill -9 $PID
+                fi
+
+                # Activate Virtual Environment
                 source venv/bin/activate
+
+                # Start Flask App in Background
                 nohup python3 app.py > flask.log 2>&1 &
+
+                echo "Flask App Started Successfully!"
                 '''
             }
         }
