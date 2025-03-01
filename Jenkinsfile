@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'master', url: 'https://github.com/your-repo/flask-app.git'
+                git branch: 'master', url: 'https://github.com/esurendrababu/latest_portfolio_flask.git'
             }
         }
 
@@ -31,7 +31,7 @@ pipeline {
             steps {
                 sh """
                 cd ${WORKSPACE_DIR}
-                source ${VENV_DIR}/bin/activate
+                source \$VENV_DIR/bin/activate  # <-- Fixed escaping here
                 pip install -r requirements.txt
                 """
             }
@@ -41,16 +41,16 @@ pipeline {
             steps {
                 sh """
                 cd ${WORKSPACE_DIR}
-                source ${VENV_DIR}/bin/activate
+                source \$VENV_DIR/bin/activate  # <-- Fixed escaping here
 
                 # Kill existing Gunicorn process if running
                 pkill -f 'gunicorn' || true
 
                 # Allow Gunicorn to use port 80 (one-time setup)
-                sudo setcap 'cap_net_bind_service=+ep' $(which gunicorn)
+                sudo setcap 'cap_net_bind_service=+ep' \$(which gunicorn)  # <-- Escaped $
 
                 # Start Gunicorn on port 80
-                nohup gunicorn --bind 0.0.0.0:80 app:app > ${FLASK_LOG} 2>&1 &
+                nohup gunicorn --bind 0.0.0.0:80 app:app > \$FLASK_LOG 2>&1 &  # <-- Fixed escaping here
                 """
             }
         }
