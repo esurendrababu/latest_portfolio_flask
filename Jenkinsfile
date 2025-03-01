@@ -21,9 +21,8 @@ pipeline {
             steps {
                 sh '''
                 python3 -m venv $VENV_DIR
-                source $VENV_DIR/bin/activate
-                pip install --upgrade pip
-                pip install -r $APP_DIR/requirements.txt
+                $VENV_DIR/bin/pip install --upgrade pip
+                $VENV_DIR/bin/pip install -r $APP_DIR/requirements.txt
                 '''
             }
         }
@@ -31,12 +30,10 @@ pipeline {
         stage('Run Flask Application') {
             steps {
                 sh '''
-                nohup python3 $APP_DIR/app.py > flask.log 2>&1 &
+                pkill -f app.py || true  # Kill existing Flask process if running
+                nohup $VENV_DIR/bin/python $APP_DIR/app.py > $APP_DIR/flask.log 2>&1 &
                 '''
             }
-        }
-
-        
         }
     }
 }
