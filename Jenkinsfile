@@ -12,12 +12,6 @@ pipeline {
             }
         }
 
-        stage('Check Requirements File') {
-            steps {
-                sh 'if [ ! -f requirements.txt ]; then echo "ERROR: requirements.txt not found"; exit 1; fi'
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
                 sh 'python3 -m venv $VENV_DIR'
@@ -41,7 +35,12 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh 'nohup python3 app.py &'
+                sh '''
+                pkill -f gunicorn || true  # Stop any running Gunicorn process
+                cd project
+                source ../venv/bin/activate
+                nohup gunicorn --bind 0.0.0.0:80 app:app > ../flask.log 2>&1 &
+                '''
             }
         }
     }
