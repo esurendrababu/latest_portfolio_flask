@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-repo/flask-app.git'
+                git branch: 'master', url: 'https://github.com/your-repo/flask-app.git'
             }
         }
 
@@ -44,7 +44,10 @@ pipeline {
                 source ${VENV_DIR}/bin/activate
 
                 # Kill existing Gunicorn process if running
-                pkill -f 'gunicorn'
+                pkill -f 'gunicorn' || true
+
+                # Allow Gunicorn to use port 80 (one-time setup)
+                sudo setcap 'cap_net_bind_service=+ep' $(which gunicorn)
 
                 # Start Gunicorn on port 80
                 nohup gunicorn --bind 0.0.0.0:80 app:app > ${FLASK_LOG} 2>&1 &
@@ -55,10 +58,10 @@ pipeline {
 
     post {
         success {
-            echo "Flask application deployed successfully!"
+            echo "✅ Flask application deployed successfully!"
         }
         failure {
-            echo "Build failed! Check logs for details."
+            echo "❌ Build failed! Check logs for details."
         }
     }
 }
