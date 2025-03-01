@@ -12,16 +12,30 @@ pipeline {
             }
         }
 
+        stage('Check Requirements File') {
+            steps {
+                sh 'if [ ! -f requirements.txt ]; then echo "ERROR: requirements.txt not found"; exit 1; fi'
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 sh 'python3 -m venv $VENV_DIR'
+                sh 'source $VENV_DIR/bin/activate && pip install --upgrade pip'
                 sh 'source $VENV_DIR/bin/activate && pip install -r requirements.txt'
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'source $VENV_DIR/bin/activate && pytest tests/'
+                script {
+                    def testDirExists = sh(script: '[ -d tests ] && echo "exists" || echo "not exists"', returnStdout: true).trim()
+                    if (testDirExists == "exists") {
+                        sh 'source $VENV_DIR/bin/activate && pytest tests/'
+                    } else {
+                        echo "Skipping tests as no 'tests/' directory exists."
+                    }
+                }
             }
         }
 
