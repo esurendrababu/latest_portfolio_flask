@@ -50,7 +50,8 @@ pipeline {
                         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
                     }
                 }" | sudo tee /etc/nginx/conf.d/flaskapp.conf
-                sudo systemctl restart nginx
+                 systemctl restart nginx
+
                 '''
             }
         }
