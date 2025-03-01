@@ -36,24 +36,7 @@ pipeline {
             }
         }
 
-        stage('Configure Nginx') {
-            steps {
-                sh '''
-                sudo rm -f /etc/nginx/conf.d/default.conf
-                echo "server {
-                    listen 80;
-                    server_name _;
-                    location / {
-                        proxy_pass http://127.0.0.1:5000;
-                        proxy_set_header Host $host;
-                        proxy_set_header X-Real-IP $remote_addr;
-                        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                    }
-                }" | sudo tee /etc/nginx/conf.d/flaskapp.conf
-                 systemctl restart nginx
-
-                '''
-            }
+        
         }
     }
 }
