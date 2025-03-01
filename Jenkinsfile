@@ -2,56 +2,63 @@ pipeline {
     agent any
 
     environment {
-        VENV_DIR = 'venv'
+        WORKSPACE_DIR = "/var/lib/jenkins/workspace/Flask-CI-CD"
+        VENV_DIR = "venv"
+        FLASK_LOG = "flask.log"
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout Code') {
             steps {
-                git 'https://github.com/esurendrababu/latest_portfolio_flask.git'
+                git branch: 'main', url: 'https://github.com/your-repo/flask-app.git'
+            }
+        }
+
+        stage('Setup Virtual Environment') {
+            steps {
+                script {
+                    sh """
+                    cd ${WORKSPACE_DIR}
+                    if [ ! -d "${VENV_DIR}" ]; then
+                        python3 -m venv ${VENV_DIR}
+                    fi
+                    """
+                }
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                sh 'python3 -m venv $VENV_DIR'
-                sh 'source $VENV_DIR/bin/activate && pip install --upgrade pip'
-                sh 'source $VENV_DIR/bin/activate && pip install -r requirements.txt'
+                sh """
+                cd ${WORKSPACE_DIR}
+                source ${VENV_DIR}/bin/activate
+                pip install -r requirements.txt
+                """
             }
         }
 
-        stage('Run Tests') {
+        stage('Deploy Application') {
             steps {
-                script {
-                    def testDirExists = sh(script: '[ -d tests ] && echo "exists" || echo "not exists"', returnStdout: true).trim()
-                    if (testDirExists == "exists") {
-                        sh 'source $VENV_DIR/bin/activate && pytest tests/'
-                    } else {
-                        echo "Skipping tests as no 'tests/' directory exists."
-                    }
-                }
+                sh """
+                cd ${WORKSPACE_DIR}
+                source ${VENV_DIR}/bin/activate
+
+                # Kill existing Gunicorn process if running
+                pkill -f 'gunicorn'
+
+                # Start Gunicorn on port 80
+                nohup gunicorn --bind 0.0.0.0:80 app:app > ${FLASK_LOG} 2>&1 &
+                """
             }
         }
+    }
 
-        stage('Run Flask App') {
-            steps {
-                sh '''
-                # Stop the existing Flask app (if running)
-                PID=$(ps aux | grep '[p]ython3 app.py' | awk '{print $2}')
-                if [ -n "$PID" ]; then
-                    echo "Stopping existing Flask app..."
-                    kill -9 $PID
-                fi
-
-                # Activate Virtual Environment
-                source venv/bin/activate
-
-                # Start Flask App in Background
-                nohup python3 app.py > flask.log 2>&1 &
-
-                echo "Flask App Started Successfully!"
-                '''
-            }
+    post {
+        success {
+            echo "Flask application deployed successfully!"
+        }
+        failure {
+            echo "Build failed! Check logs for details."
         }
     }
 }
