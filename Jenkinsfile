@@ -36,6 +36,7 @@ pipeline {
         stage('Run Flask App') {
             steps {
                 sh '''
+                cd project
                 pkill -f app.py || true  # Stop any existing Flask app instance
                 source venv/bin/activate
                 nohup python3 app.py > flask.log 2>&1 &
