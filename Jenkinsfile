@@ -18,9 +18,9 @@ pipeline {
             steps {
                 script {
                     sh """
-                    cd ${WORKSPACE_DIR}
-                    if [ ! -d "${VENV_DIR}" ]; then
-                        python3 -m venv ${VENV_DIR}
+                    cd ${env.WORKSPACE_DIR}  # Use ${env.WORKSPACE_DIR} instead of ${WORKSPACE_DIR}
+                    if [ ! -d "${env.VENV_DIR}" ]; then
+                        python3 -m venv ${env.VENV_DIR}
                     fi
                     """
                 }
@@ -30,8 +30,8 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh """
-                cd ${WORKSPACE_DIR}
-                source \$VENV_DIR/bin/activate  # <-- Fixed escaping here
+                cd ${env.WORKSPACE_DIR}  # Use ${env.WORKSPACE_DIR} instead of ${WORKSPACE_DIR}
+                source ${env.VENV_DIR}/bin/activate
                 pip install -r requirements.txt
                 """
             }
@@ -40,28 +40,20 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 sh """
-                cd ${WORKSPACE_DIR}
-                source \$VENV_DIR/bin/activate  # <-- Fixed escaping here
+                cd ${env.WORKSPACE_DIR}
+                source ${env.VENV_DIR}/bin/activate
 
                 # Kill existing Gunicorn process if running
                 pkill -f 'gunicorn' || true
 
                 # Allow Gunicorn to use port 80 (one-time setup)
-                sudo setcap 'cap_net_bind_service=+ep' \$(which gunicorn)  # <-- Escaped $
+                sudo setcap 'cap_net_bind_service=+ep' $(which gunicorn)
 
                 # Start Gunicorn on port 80
-                nohup gunicorn --bind 0.0.0.0:80 app:app > \$FLASK_LOG 2>&1 &  # <-- Fixed escaping here
+                nohup gunicorn --bind 0.0.0.0:80 app:app > ${env.FLASK_LOG} 2>&1 &
                 """
             }
         }
     }
 
-    post {
-        success {
-            echo "✅ Flask application deployed successfully!"
-        }
-        failure {
-            echo "❌ Build failed! Check logs for details."
-        }
-    }
-}
+
