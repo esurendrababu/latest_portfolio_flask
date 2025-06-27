@@ -1,14 +1,18 @@
-# Use official Python image
+# Use official Python base image
 FROM python:3.9-slim
 
-# Set working directory
+# Set working directory inside container
 WORKDIR /app
 
-# Copy code
+# Copy all files into container
 COPY . .
 
-# Install Flask
-RUN pip install Flask
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Run the app
-CMD ["python", "app.py"]
+# Expose the port Cloud Run will connect to
+ENV PORT=8080
+EXPOSE 8080
+
+# Start the app
+CMD ["python", "project/app.py"]
